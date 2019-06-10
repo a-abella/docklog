@@ -77,7 +77,18 @@ for container in args.container:
     clients.append(client)
     
     # Get container by name or ID from supplied command-line arguments
-    container = client.containers.get(container)
+    try:
+        container = client.containers.get(container)
+    # Handle failed container lookups
+    except:
+        print("\n" + Style.BRIGHT + "\033[31mError" + Style.RESET_ALL + ": Could not find container '" + container + "'")
+        for stream in streams:
+            stream.terminate()
+        for client in clients:
+            client.close()
+        deinit()
+        print()
+        sys.exit(1)
 
     # Spawn a child processes for each container log stream
     # Do not block or buffer
