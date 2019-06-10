@@ -52,6 +52,9 @@ except argparse.ArgumentTypeError as err:
 usedcolors = []
 init(strip=False)
 
+# Hold the largest container name char count
+namewidth = 0
+
 # Hold our multiple clients
 clients = []
 
@@ -79,6 +82,8 @@ for container in args.container:
     # Get container by name or ID from supplied command-line arguments
     try:
         container = client.containers.get(container)
+        if len(container.name) > namewidth:
+            namewidth = len(container.name)
     # Handle failed container lookups
     except:
         print("\n" + Style.BRIGHT + "\033[31mError" + Style.RESET_ALL + ": Could not find container '" + container + "'")
