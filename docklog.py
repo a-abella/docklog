@@ -29,12 +29,22 @@ def maximum_length(nmax):
 def stream_log(container, color):
     # Retrieve log lines live as a byte stream
     # Decode, prepend formatting, and print
-    tabwidth = (bignamewidth - len(container.name)) + 20
-    try:
-        for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
-            print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.decode().strip(), flush=True)
-    except KeyboardInterrupt:
-        return 1
+    if args.timestamps:
+        try:
+            tabwidth = (bignamewidth - len(container.name)) + 8
+            for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
+                time = line.decode().strip().split()[0][:22] + "Z"
+                logline = ' '.join(line.decode().strip().split()[1:])
+                print(color + container.name + Style.RESET_ALL + " " * tabwidth + time + "  |  " + logline, flush=True)
+        except KeyboardInterrupt:
+            return 1
+    else:
+        try:
+            tabwidth = (bignamewidth - len(container.name)) + 14
+            for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
+                print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.decode().strip(), flush=True)
+        except KeyboardInterrupt:
+            return 1
 
 # Parse arguments and options
 # Print error if too many containers
