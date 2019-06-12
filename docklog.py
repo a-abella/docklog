@@ -29,9 +29,10 @@ def maximum_length(nmax):
 def stream_log(container, color):
     # Retrieve log lines live as a byte stream
     # Decode, prepend formatting, and print
+    tabwidth = (bignamewidth - len(container.name)) + 20
     try:
         for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
-            print(color + container.name + Style.RESET_ALL + "\t\t|  " + line.decode().strip(), flush=True)
+            print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.decode().strip(), flush=True)
     except KeyboardInterrupt:
         return 1
 
@@ -53,13 +54,34 @@ usedcolors = []
 init(strip=False)
 
 # Hold the largest container name char count
-namewidth = 0
+bignamewidth = 0
 
 # Hold our multiple clients
 clients = []
 
 # Hold our log stream child processes
 streams = []
+
+# Test client connection, get names, find longest
+for container in args.container:
+    try:
+        client = docker.from_env(version='auto', assert_hostname=False)
+    except:
+        print("\n" + Style.BRIGHT + "\033[31mError" + Style.RESET_ALL + ": Could not connect to docker daemon")
+        deinit()
+        sys.exit(1)
+    try:
+        thiscontainer = client.containers.get(container)
+    except:
+        print("\n" + Style.BRIGHT + "\033[31mError" + Style.RESET_ALL + ": Could not find container '" + container + "'")
+        client.close()
+        deinit()
+        sys.exit(1)
+    
+    thislength = len(thiscontainer.name)
+    bignamewidth = thislength if thislength > bignamewidth else bignamewidth
+    client.close()
+
 
 # Create a log stream for each container
 for container in args.container:
@@ -80,24 +102,11 @@ for container in args.container:
     clients.append(client)
     
     # Get container by name or ID from supplied command-line arguments
-    try:
-        container = client.containers.get(container)
-        if len(container.name) > namewidth:
-            namewidth = len(container.name)
-    # Handle failed container lookups
-    except:
-        print("\n" + Style.BRIGHT + "\033[31mError" + Style.RESET_ALL + ": Could not find container '" + container + "'")
-        for stream in streams:
-            stream.terminate()
-        for client in clients:
-            client.close()
-        deinit()
-        print()
-        sys.exit(1)
+    resolved_container = client.containers.get(container)
 
     # Spawn a child processes for each container log stream
     # Do not block or buffer
-    p = Process(target=stream_log, args=(container, color))
+    p = Process(target=stream_log, args=(resolved_container, color))
     streams.append(p)
     p.start()
 
