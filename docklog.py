@@ -51,7 +51,8 @@ def stream_log(container, color):
 parser = argparse.ArgumentParser(description="Simultaneously stream the logs of up to eight Docker containers")
 parser.add_argument("container", metavar="CONTAINER", help="Container names or IDs", type=str, nargs="+", action=maximum_length(8))
 parser.add_argument("-t", "--timestamps", "--time", help="Prepend timestamps to log lines", action="store_true")
-parser.add_argument("-n", "--tail", help="Number of lines to show from end of the logs (default 10)", type=int, default=10)
+parser.add_argument("-n", "--tail", help="Number of lines to show from end (default 10)", type=int, default=10)
+parser.add_argument("-s", "--static", help="Do not follow; print tail lines and exit", action="store_false")
 try:
     args = parser.parse_args()
 except argparse.ArgumentTypeError as err:
