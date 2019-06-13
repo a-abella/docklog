@@ -50,21 +50,24 @@ def stream_log(container, color):
 def print_log(container, color):
     # Retrieve last N log lines and exit
     # Decode, prepend formatting, and print
+    thislog = []
     if args.timestamps:
         try:
             tabwidth = (bignamewidth - len(container.name)) + 8
             for line in container.logs(stream=False, timestamps=True, tail=args.tail).decode().split("\n")[:-1]:
                 logline = line.strip()
-                time = logline.split()[0][:22] + "Z"
+                time = logline.split()[0][:24] + "Z"
                 logline = ' '.join(logline.split()[1:])
-                print(color + container.name + Style.RESET_ALL + " " * tabwidth  + time + "  |  " + logline)
+                thislog.append(color + container.name + Style.RESET_ALL + " " * tabwidth  + time + "  |  " + logline)
+            return thislog
         except KeyboardInterrupt:
             return 1
     else:
         try:
             tabwidth = (bignamewidth - len(container.name)) + 14
             for line in container.logs(stream=False, timestamps=False, tail=args.tail).decode().split("\n")[:-1]:
-                print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.strip())
+                thislog.append(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.strip())
+            return thislog
         except KeyboardInterrupt:
             return 1
 
@@ -94,6 +97,9 @@ clients = []
 
 # Hold our log stream child processes
 streams = []
+
+# Hold static log lines for later sorting
+all_lines = []
 
 # Test client connection, get names, find longest
 for container in args.container:
@@ -137,9 +143,9 @@ for container in args.container:
     # Get container by name or ID from supplied command-line arguments
     resolved_container = client.containers.get(container)
 
-    # Print logs and exit if not streaming
+    # Get logs and hold for sorting if not streaming
     if args.static:
-        print_log(resolved_container, color)
+        all_lines.extend(print_log(resolved_container, color))
     # Spawn child processes if streaming
     # Do not block or buffer
     else:
@@ -147,8 +153,14 @@ for container in args.container:
         streams.append(p)
         p.start()
 
-# Clean up and exit if not streaming
+# Print, clean up, and exit if not streaming
 if args.static:
+    if args.timestamps:
+        for line in sorted(all_lines, key=lambda line: line.split()[1]):
+            print(line)
+    else:
+        for line in all_lines:
+            print(line)
     client.close()
     deinit()
     print()
