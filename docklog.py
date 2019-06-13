@@ -32,7 +32,7 @@ def stream_log(container, color):
     if args.timestamps:
         try:
             tabwidth = (bignamewidth - len(container.name)) + 8
-            for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
+            for line in container.logs(stream=True, timestamps=True, tail=args.tail):
                 time = line.decode().strip().split()[0][:22] + "Z"
                 logline = ' '.join(line.decode().strip().split()[1:])
                 print(color + container.name + Style.RESET_ALL + " " * tabwidth + time + "  |  " + logline, flush=True)
@@ -41,8 +41,30 @@ def stream_log(container, color):
     else:
         try:
             tabwidth = (bignamewidth - len(container.name)) + 14
-            for line in container.logs(stream=True, timestamps=args.timestamps, tail=args.tail):
+            for line in container.logs(stream=True, timestamps=False, tail=args.tail):
                 print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.decode().strip(), flush=True)
+        except KeyboardInterrupt:
+            return 1
+
+# Print without streaming
+def print_log(container, color):
+    # Retrieve last N log lines and exit
+    # Decode, prepend formatting, and print
+    if args.timestamps:
+        try:
+            tabwidth = (bignamewidth - len(container.name)) + 8
+            for line in container.logs(stream=False, timestamps=True, tail=args.tail).decode().split("\n")[:-1]:
+                logline = line.strip()
+                time = logline.split()[0][:22] + "Z"
+                logline = ' '.join(logline.split()[1:])
+                print(color + container.name + Style.RESET_ALL + " " * tabwidth  + time + "  |  " + logline)
+        except KeyboardInterrupt:
+            return 1
+    else:
+        try:
+            tabwidth = (bignamewidth - len(container.name)) + 14
+            for line in container.logs(stream=False, timestamps=False, tail=args.tail).decode().split("\n")[:-1]:
+                print(color + container.name + Style.RESET_ALL + " " * tabwidth  + "|  " + line.strip())
         except KeyboardInterrupt:
             return 1
 
@@ -52,7 +74,7 @@ parser = argparse.ArgumentParser(description="Simultaneously stream the logs of 
 parser.add_argument("container", metavar="CONTAINER", help="Container names or IDs", type=str, nargs="+", action=maximum_length(8))
 parser.add_argument("-t", "--timestamps", "--time", help="Prepend timestamps to log lines", action="store_true")
 parser.add_argument("-n", "--tail", help="Number of lines to show from end (default 10)", type=int, default=10)
-parser.add_argument("-s", "--static", help="Do not follow; print tail lines and exit", action="store_false")
+parser.add_argument("-s", "--static", help="Do not follow; print tail lines and exit", action="store_true")
 try:
     args = parser.parse_args()
 except argparse.ArgumentTypeError as err:
@@ -94,7 +116,7 @@ for container in args.container:
     client.close()
 
 
-# Create a log stream for each container
+# Get logs for each container
 for container in args.container:
     # Always get a new color for container names
     while True:
@@ -115,24 +137,35 @@ for container in args.container:
     # Get container by name or ID from supplied command-line arguments
     resolved_container = client.containers.get(container)
 
-    # Spawn a child processes for each container log stream
+    # Print logs and exit if not streaming
+    if args.static:
+        print_log(resolved_container, color)
+    # Spawn child processes if streaming
     # Do not block or buffer
-    p = Process(target=stream_log, args=(resolved_container, color))
-    streams.append(p)
-    p.start()
+    else:
+        p = Process(target=stream_log, args=(resolved_container, color))
+        streams.append(p)
+        p.start()
 
-# Keep main thread alive while streaming
-try:
-    while True:
-        time.sleep(1)
-# Clean up child processes and close docker client connections
-except:
-    for stream in streams:
-        stream.terminate()
-    for client in clients:
-        client.close()
-# De-colorize and exit
-finally:
+# Clean up and exit if not streaming
+if args.static:
+    client.close()
     deinit()
     print()
     sys.exit()
+# Keep main thread alive while streaming, catch ctrl-c
+else:
+    try:
+        while True:
+            time.sleep(1)
+    # Clean up child processes and close docker client connections
+    except:
+        for stream in streams:
+            stream.terminate()
+        for client in clients:
+            client.close()
+    # De-colorize and exit
+    finally:
+        deinit()
+        print()
+        sys.exit()
