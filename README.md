@@ -4,7 +4,7 @@ Tail multiple Docker container logs simultaneously with `docker-compose logs` st
 Specify the Docker daemon to connect to with the `DOCKER_HOST=...` environment variable. Defaults to `unix://var/run/docker.sock`
 
 ```
-usage: docklog.py [-h] [-t] [-n TAIL] CONTAINER [CONTAINER ...]
+usage: docklog.py [-h] [-t] [-n TAIL] [-s] CONTAINER [CONTAINER ...]
 
 Simultaneously stream the logs of up to eight Docker containers
 
@@ -15,8 +15,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -t, --timestamps, --time
                         Prepend timestamps to log lines
-  -n TAIL, --tail TAIL  Number of lines to show from end of the logs (default
-                        10)
+  -n TAIL, --tail TAIL  Number of lines to show from end (default 10)
+  -s, --static          Do not follow; print tail lines and exit
 ```
 
 ```
