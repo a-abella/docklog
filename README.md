@@ -5,7 +5,7 @@ Specify the Docker daemon to connect to with the `DOCKER_HOST=...` environment v
 
 &nbsp;
 
-![Sample output](https://i.imgur.com/Tz4QynI.gif)
+![Sample output](https://i.imgur.com/qLUovZF.gif)
 
 &nbsp;
 
