@@ -3,11 +3,7 @@ Tail multiple Docker container logs simultaneously with `docker-compose logs` st
 
 Specify the Docker daemon to connect to with the `DOCKER_HOST=...` environment variable. Defaults to `unix://var/run/docker.sock`
 
-&nbsp;
-
 ![Sample output](https://i.imgur.com/qLUovZF.gif)
-
-&nbsp;
 
 ```
 usage: docklog.py [-h] [-t] [-n TAIL] [-s] CONTAINER [CONTAINER ...]
