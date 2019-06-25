@@ -82,7 +82,7 @@ try:
     args = parser.parse_args()
 except argparse.ArgumentTypeError as err:
     parser.print_usage()
-    print(os.path.basename(sys.argv[0]) + ": " + "error: " + str(err))
+    print(os.path.basename(parser.prog) + ": " + "error: " + str(err))
     sys.exit(1)
 
 # Hold used colors and init ANSI sequences in win32
